@@ -1,4 +1,13 @@
-// Sudoku puzzle verifier and solver
+// Olga Kuriatnyk
+// CSS430A
+// 4/24/2022
+// P2 : Multi-Threaded Sudoku Validator
+// Sudoku puzzle verifier works for NxN puzzle.
+// Checks whether the puzzle is complete (does not have 0s),
+// if complete, checks if the puzzle is a valid sudoku puzzle.
+
+//compile: gcc -pthread -lm -std=c99 sudoku.c -o sudoku
+// run (verify): ./sudoku puzzle-easy.txt
 
 #include <assert.h>
 #include <ctype.h>
@@ -10,230 +19,17 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* structure for passing data to threads */
+// structure for passing data to threads
 typedef struct {
     int row;
     int column;
-    int (*grid)[9]; // TODO: how to change 9 to any?
+    int** grid;
+    int psize;
 } parameters;
 
-// takes filename and pointer to grid[][]
-// returns size of Sudoku puzzle and fills grid
-int readSudokuPuzzle(char *filename, int ***grid);
-
-// takes puzzle size and grid[][]
-// prints the puzzle
-void printSudokuPuzzle(int psize, int **grid);
-
-// takes puzzle size and grid[][]
-// frees the memory allocated
-void deleteSudokuPuzzle(int psize, int **grid);
-
-// Checks if the subgrid of the sudoku grid is valid
-void *validateSubgrid(void *data) {
-  printf("start *validateSubgrid(void *data))\n");
-
-  //int *exitStatus = (int *)malloc(sizeof(int));
-  // *exitStatus = EXIT_SUCCESS;
-
-  int digit_check[10] = {0};
-  //int size;// = sqrt(psize);
-  parameters *prmtrs = (parameters *)data;
-  for (int i = prmtrs->row; i < prmtrs->row + 3; i++) { // TDOD: switch 3 to sqrt(psize) ?
-  printf("validate subgrid for loop1\n");
-    for (int j = prmtrs->column; j < prmtrs->column + 3; j++) {
-      printf("validate subGrid for loop2\n");
-      if (digit_check[prmtrs->grid[i][j]] == 1) {
-        printf("invalid sudoku\n");
-        // *exitStatus = EXIT_FAILURE;
-        // return (void *)exitStatus;
-        return (void *)-1; // Invalid sudoku subgrid
-      }
-      digit_check[prmtrs->grid[i][j]] = 1;
-    }
-  }
-  //return (void *)exitStatus;
-  return (void *)0; // Valid sudoku subgrid
-}
-
-// Checks whether the rows of the sudoku grid are valid.
-void *validateRows(void *data) {
-  printf("start *validateRows(void *data))\n");
-
-  // int *exitStatus = (int*)malloc(sizeof(int));
-  // *exitStatus = EXIT_SUCCESS;
-
-  int digit_check[10] = {0};
-  parameters *prmtrs = (parameters *)data;
-  for (int i = 0; i < 9; i++) { // TODO: change 9 to psize
-    for (int j = 0; j < 9; j++) {
-      if (digit_check[prmtrs->grid[i][j]] == 1) {
-       // *exitStatus = EXIT_FAILURE;
-        //return (void *)exitStatus;
-        return (void *)-1;
-      }
-      digit_check[prmtrs->grid[i][j]] = 1;
-    }
-    memset(digit_check, 0, sizeof(int)*10);
-  }
-  //return (void *)exitStatus;
-  return (void *)0;
-}
-
-// Checks whether the columns of the sudoku grid are valid.
-void *validateColumns(void *data) {
-  printf("start *validateColumns(void *data))\n");
-
-  // int *exitStatus = (int*)malloc(sizeof(int));
-  // *exitStatus = EXIT_SUCCESS;
-
-  int digit_check[10] = {0};
-  parameters *prmtrs = (parameters *)data;
-  for (int i = 0; i < 9; i++) { // TODO: change 9 to psize
-    for (int j = 0; j < 9; j++) {
-      if (digit_check[prmtrs->grid[j][i]] == 1) {
-        // *exitStatus = EXIT_FAILURE;
-        // return (void *)exitStatus;
-        return (void *)-1;
-      }
-      digit_check[prmtrs->grid[j][i]] = 1;
-    }
-    memset(digit_check, 0, sizeof(int)*10);
-  }
-  //return (void *)exitStatus;
-    return (void *)0;
-}
-
-// takes puzzle size and grid[][] representing sudoku puzzle
-// and tow booleans to be assigned: complete and valid.
-// row-0 and column-0 is ignored for convenience, so a 9x9 puzzle
-// has grid[1][1] as the top-left element and grid[9]9] as bottom right
-// A puzzle is complete if it can be completed with no 0s in it
-// If complete, a puzzle is valid if all rows/columns/boxes have numbers from 1
-// to psize For incomplete puzzles, we cannot say anything about validity
-void checkPuzzle(int psize, int **grid, bool *complete, bool *valid) {
-  // Validate all sudoku grids
-
-  parameters *data[psize];
-
-  int i = 0;
-	for(int row = 0; row < psize; row += 3)
-	{
-		for(int column = 0; column < psize; column += 3, i++)
-		{
-			data[i] = (parameters *)malloc(sizeof(parameters));
-			if(data[i] == NULL){
-				int err = errno;
-				puts("malloc failed");
-				puts(strerror(err));
-				exit(EXIT_FAILURE);
-			}
-			data[i]->row = row;
-			data[i]->column = column;
-			data[i]->grid = grid;
-		}
-	}
-
-  int num_threads = psize + 2;  
-  pthread_t tid[num_threads];    
-  
-  int t_status[num_threads], retCode, check_flag = 0;
-  for (int g = 1; g <= psize; g++) {
-    
-    // Create threads for subgrid validation 
-    for (int p = 0; p < psize; p++) {
-      printf("before validateSubgrid\n");
-      if (retCode = pthread_create(&tid[p], NULL, validateSubgrid, (void *)data[p])) {
-        fprintf(stderr, "Error - pthread_create() return code: %d\n", retCode); 
-        exit(EXIT_FAILURE);
-      }
-    }
-    printf("before validateRows\n");
-    // Create threads for row and column validation
-    if (retCode = pthread_create(&tid[psize+1], NULL, validateRows, (void *)data[0])) {
-      fprintf(stderr, "Error - pthread_create() return code: %d\n", retCode); //false);
-      exit(EXIT_FAILURE);
-    }
-    printf("before validateColumns\n");
-    if (retCode = pthread_create(&tid[psize+2], NULL, validateColumns, (void *)data[0])) {
-      fprintf(stderr, "Error - pthread_create() return code: %d\n", retCode); //false);
-      exit(EXIT_FAILURE);
-    }
-  }
-
-  //pthread_join(tid[0], (void *)&t_status[0]);
-    printf("before Join for loop\n");
-  //Join all threads so main waits until the threads finish
-  for (int j = 0; j < num_threads; j++) {
-    void *retVal;
-    int join_status;
-    join_status = pthread_join(tid[j], &retVal);
-
-  //   // if (join_status != 0) {
-  //   //   fprintf(stderr, "Failed to join thread (errorNo : %j)\n", join_status);
-  //   //   exit(EXIT_FAILURE);
-  //   // }
-  //   // int *status = (int*)retVal;
-
-
-  //   //pthread_join(tid[j], (void *)&t_status[j]);
-  //   // if(retCode = pthread_join(tid[j], (void *)&t_status[j])){
-  //   //   fprintf(stderr, "Error - pthread_join() return code: %d\n", retCode);
-  //   //   exit(EXIT_FAILURE);
-  //   // }
-  }
-
-  // // check the status returned by each thread
-  // for (int h = 0; h < num_threads; h++) {
-  //   if(t_status[h]) {
-  //     check_flag = 1;
-  //     break;
-  //   }
-  // }
-  // if (check_flag) {
-  //   printf("Sudoku Puzzle: Invalid\n");
-  // } else {
-  //   *complete = true;
-  //   *valid = true;
-  //   printf("Sudoku Puzzle: Valid\n");
-  // }
-
-
-    //*complete = true;
-
-  // if (!complete) { // if complete == false
-  //   *valid = false;
-  // } else {
-  //   *valid = true;
-  // }
-   
-}
-
-
-
-// expects file name of the puzzle as argument in command line
-int main(int argc, char **argv) {
-  if (argc != 2) {
-    printf("usage: ./sudoku puzzle.txt\n");
-    return EXIT_FAILURE;
-  }
-  // grid is a 2D array
-  int **grid = NULL;
-  // find grid size and fill grid
-  int sudokuSize = readSudokuPuzzle(argv[1], &grid);
-  bool valid = false;
-  bool complete = false;
-  checkPuzzle(sudokuSize, grid, &complete, &valid);
-  printf("Complete puzzle? ");
-  printf(complete ? "true\n" : "false\n");
-  if (complete) {
-    printf("Valid puzzle? ");
-    printf(valid ? "true\n" : "false\n");
-  }
-  printSudokuPuzzle(sudokuSize, grid);
-  deleteSudokuPuzzle(sudokuSize, grid);
-  return EXIT_SUCCESS;
-}
+// this array holds status for complete thread, row thread, and column thread
+// index 0 - completnes, 1 - rows validation, 2 - columns validation
+int status[3] = {0};
 
 // takes filename and pointer to grid[][]
 // returns size of Sudoku puzzle and fills grid
@@ -277,4 +73,167 @@ void deleteSudokuPuzzle(int psize, int **grid) {
     free(grid[row]);
   }
   free(grid);
+}
+
+// Checks whether the grid is complete (does not contain 0's) 
+void *completeCheck(void *data) {
+  parameters *prmtrs = (parameters *)data;
+  for (int i = 1; i <= prmtrs->psize; i++) {
+    for (int j = 1; j <= prmtrs->psize; j++){
+      if(prmtrs->grid[i][j] == 0) {
+        status[0] = 2; // 2 for incomplete
+        pthread_exit(0);
+      }
+    }
+  }
+  status[0] = 1; // valid
+  pthread_exit(0);
+}
+
+// Checks whether the rows of the sudoku grid are valid.
+void *validateRows(void *data) {
+  parameters *prmtrs = (parameters *)data;
+  int digit_check[prmtrs->psize];
+  for (int i = 1; i <= prmtrs->psize; i++) {
+    for (int j = 1; j <= prmtrs->psize; j++){
+      if (digit_check[prmtrs->grid[i][j] - 1] == 1) {
+        pthread_exit(0); // invalid
+     }
+    digit_check[prmtrs->grid[i][j] - 1] = 1;
+    }
+    memset(digit_check, 0, sizeof(digit_check));
+  }
+  status[1] = 1; // valid
+  pthread_exit(0);
+}
+
+// Checks whether the columns of the sudoku grid are valid.
+void *validateColumns(void *data) {
+  parameters *prmtrs = (parameters *)data;
+  int digit_check[prmtrs->psize];
+  for (int i = 1; i <= prmtrs->psize; i++) {
+    for (int j = 1; j <= prmtrs->psize; j++){
+      if (digit_check[prmtrs->grid[j][i] - 1] == 1) {
+        pthread_exit(0); // invalid
+      }
+      digit_check[prmtrs->grid[j][i] - 1] = 1;
+    }
+    memset(digit_check, 0, sizeof(digit_check));
+  }
+  status[2] = 1; // valid
+  pthread_exit(0);
+}
+
+// Checks if the subgrid of the sudoku grid is valid
+void *validateSubgrid(void *data) {
+  parameters *prmtrs = (parameters *)data;
+  int digit_check[prmtrs->psize];
+  for (int i = prmtrs->row; i < prmtrs->row + sqrt(prmtrs->psize); i++) {
+    for (int j = prmtrs->column; j < prmtrs->column + sqrt(prmtrs->psize); j++) {
+      if (digit_check[prmtrs->grid[i][j]-1] == 1) {
+        return (void *)0; // Invalid sudoku subgrid
+      }
+      digit_check[prmtrs->grid[i][j]-1] = 1;
+    }
+    memset(digit_check, 0, sizeof(digit_check));
+  }
+  return (void *)1; // Valid sudoku subgrid
+}
+
+// takes puzzle size and grid[][] representing sudoku puzzle
+// and tow booleans to be assigned: complete and valid.
+// row-0 and column-0 is ignored for convenience, so a 9x9 puzzle
+// has grid[1][1] as the top-left element and grid[9]9] as bottom right
+// A puzzle is complete if it can be completed with no 0s in it
+// If complete, a puzzle is valid if all rows/columns/boxes have numbers from 1
+// to psize For incomplete puzzles, we cannot say anything about validity
+void checkPuzzle(int psize, int **grid, bool *complete, bool *valid) {
+// check if the grid is complete, status[0]
+  pthread_t tid_complete;
+  parameters *data_complete = (parameters *)malloc(sizeof(parameters));
+  data_complete->row = 1;
+  data_complete->column = 1;
+  data_complete->psize = psize;
+  data_complete->grid = grid;
+  pthread_create(&tid_complete, NULL, completeCheck, (void *) data_complete);
+  pthread_join(tid_complete, NULL);
+  if (status[0] == 1) {
+    *complete = true;
+  }
+  if (complete) {
+// check if rows are valid, status[1]
+    pthread_t tid_rows;
+    parameters *data_rows = (parameters *)malloc(sizeof(parameters));
+    data_rows->row = 1;
+    data_rows->column = 1;
+    data_rows->psize = psize;
+    data_rows->grid = grid;
+    pthread_create(&tid_rows, NULL, validateRows, (void *)data_rows);
+    pthread_join(tid_rows, NULL);
+// check if columns are valid, status[2]
+    pthread_t tid_columns;
+    parameters *data_columns = (parameters *)malloc(sizeof(parameters));
+    data_columns->row = 1;
+    data_columns->column = 1;
+    data_columns->psize = psize;
+    data_columns->grid = grid;
+    pthread_create(&tid_columns, NULL, validateColumns, (void *)data_columns);
+    pthread_join(tid_columns, NULL);
+// check if subgrids are valid
+    pthread_t tid_subgrid[psize];
+    int tid_subgrid_status[psize];
+    int i = 0;
+    double s = sqrt(psize);
+    parameters *data_subgrid[psize];
+    for (int r = 1; r <= psize; r += s) {
+      for (int c = 1; c <= psize; c += s, i++) {
+        data_subgrid[i] = (parameters *)malloc(sizeof(parameters));
+        data_subgrid[i]->row = r;
+        data_subgrid[i]->column = c;
+        data_subgrid[i]->psize = psize;
+        data_subgrid[i]->grid = grid;
+      }
+    }
+    // if subgrid is not valid - exit
+    int return_code;
+    for (int i = 0; i < psize; i++) {
+      pthread_create(&tid_subgrid[i], NULL, validateSubgrid, (void *)data_subgrid[i]);
+    }
+    for (int i = 0; i < psize; i++) {
+      if (pthread_join(tid_subgrid[i], NULL) == return_code) {
+        *valid = false;
+        exit(EXIT_FAILURE);
+      }
+    }
+    // if threads for cheking subgrids didn't exit with failure, check if
+    // rows validation status and columns validation status equals to 1
+    // if so - set *valid to true
+    if (status[1] == 1 && status[2] == 1) {
+      *valid = true;
+    }
+  }
+}
+
+// expects file name of the puzzle as argument in command line
+int main(int argc, char **argv) {
+  if (argc != 2) {
+    printf("usage: ./sudoku puzzle.txt\n");
+    return EXIT_FAILURE;
+  }
+  // grid is a 2D statusay
+  int **grid = NULL;
+  // find grid size and fill grid
+  int sudokuSize = readSudokuPuzzle(argv[1], &grid);
+  bool valid = false;
+  bool complete = false;
+  checkPuzzle(sudokuSize, grid, &complete, &valid);
+  printf("Complete puzzle? ");
+  printf(complete ? "true\n" : "false\n");
+  if (complete) {
+    printf("Valid puzzle? ");
+    printf(valid ? "true\n" : "false\n");
+  }
+  printSudokuPuzzle(sudokuSize, grid);
+  deleteSudokuPuzzle(sudokuSize, grid);
+  return EXIT_SUCCESS;
 }
