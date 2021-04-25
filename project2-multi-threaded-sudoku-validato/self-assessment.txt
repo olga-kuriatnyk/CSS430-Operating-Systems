@@ -1,0 +1,8 @@
+For a 9x9 complete puzzle:
+    Can verify whether it is valid or not - 10/10
+    Starts/joins multiple threads to speedup operation - 5/5
+For NxN complete puzzle:
+    Can verify whether it is valid or not - 5/5
+    The number of threads is proportional to N - 5/5
+
+Total: 25/25
