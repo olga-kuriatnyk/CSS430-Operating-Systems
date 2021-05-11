@@ -1,7 +1,15 @@
+// Olga Kuriatnyk
+// 5/11/2021
+// CSS 430
+// P3: Scheduling Algorithms
+// schedule_fcfs.c
+// This file includes the implementation of first-come, first-served (FCFS) scheduling
+// algorithm, which schedules tasks in the order in which they request the CPU.
+
 #include <string.h>
 #include <stdlib.h>
 #include <stdio.h>
-//#include <stdbool.h>
+#include <stdbool.h>
 
 #include "schedulers.h"
 #include "task.h"
@@ -11,64 +19,45 @@
 struct node *task_list = NULL;
 
 // add a task to the list
+// allocate new memory
+// initialize all the tasks' date fields with values
 void add(char *name, int priority, int burst) {
-  Task *t = malloc(sizeof(Task));
-  // allocate memory and then copy the name
-  t->name = malloc(sizeof(char) * (strlen(name) + 1));
-  strcpy(t->name, name);
-  // priority and burst
-  t->priority = priority;
-  t->burst = burst;
-  // insert into task list
-  insert(&task_list, t);
+  Task *task = malloc(sizeof(Task));
+  task->name = malloc(sizeof(char) * (strlen(name) + 1));
+  strcpy(task->name, name);
+  task->priority = priority;
+  task->burst = burst;
+  insert(&task_list, task);
 }
 
-// pick the next task to execute with FCFS
+bool comesBefore(char *a, char *b) { return strcmp(a, b) < 0; }
+
+// finds the task whose name comes first in dictionary for grading puproses
 Task *pickNextTask() {
   if (!task_list) {
     return NULL;
   }
-  struct node *lastNode = task_list;
-   while(lastNode->next) {
-    lastNode = lastNode->next;
-  }
-  return lastNode->task;
+  struct node *temp;
+  temp = task_list;
+  Task *best_sofar = temp->task;
+  while (temp != NULL) {
+    if (comesBefore(temp->task->name, best_sofar->name)) {
+      best_sofar = temp->task;
+    }
+    temp = temp->next;
+   }
+  return best_sofar;
 }
 
-// // PISAN CODE
-// bool comesBefore(char *a, char *b) { return strcmp(a, b) < 0; }
-
-// // based on traverse from list.c
-// // finds the task whose name comes first in dictionary
-// Task *pickNextTask() {
-//   // if list is empty, nothing to do
-//   if (!task_list) {
-//       return NULL;
-//   }
-
-//   struct node *temp;
-//   temp = task_list;
-//   Task *best_sofar = temp->task;
-
-//   while (temp != NULL) {
-//     if (comesBefore(temp->task->name, best_sofar->name)) {
-//         best_sofar = temp->task;
-//     }
-//     temp = temp->next;
-//    }
-//   // delete the node from list, Task will get deleted later
-//   delete (&task_list, best_sofar);
-//   return best_sofar;
-// }
-
 // invoke the scheduler
+// print total time used by CPU after finishing each task 
 void schedule() {
   int time = 0;
   while(task_list) {
-    Task *t = pickNextTask();
-    run(t, t->burst);
-    time += t->burst;
+    Task *task = pickNextTask();
+    run(task, task->burst);
+    time += task->burst;
     printf("\tTime is now: %d\n", time);
-    delete(&task_list, t);
+    delete (&task_list, task); // delete the node from list
   }
 }

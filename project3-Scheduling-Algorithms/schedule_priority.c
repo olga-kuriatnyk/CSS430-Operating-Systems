@@ -1,3 +1,11 @@
+// Olga Kuriatnyk
+// 5/11/2021
+// CSS 430
+// P3: Scheduling Algorithms
+// schedule_priority.c
+// This file includes the implementation of priority scheduling alforithm,
+// which schedules tasks based on priority.
+
 #include<string.h>
 #include<stdlib.h>
 #include <stdio.h>
@@ -10,43 +18,43 @@
 struct node *task_list = NULL;
 
 // add a task to the list
+// allocate new memory
+// initialize all the tasks' date fields with values
 void add(char *name, int priority, int burst) {
-  Task *temp = malloc(sizeof(Task));
-  // allocate memory and then copy the name
-  temp->name = malloc(sizeof(char) * (strlen(name) + 1));
-  strcpy(temp->name, name);
-  // priority and burst
-  temp->priority = priority;
-  temp->burst = burst;
-  // insert into task list
-  insert(&task_list, temp);
+  Task *task = malloc(sizeof(Task));
+  task->name = malloc(sizeof(char) * (strlen(name) + 1));
+  strcpy(task->name, name);
+  task->priority = priority;
+  task->burst = burst;
+  insert(&task_list, task);
 }
 
-// pick the next task to execute with the Highest Priority
-// for task with the same priority chose in lexicographical order.
+// pick the next task to execute with the highest priority
+// for task with the same priority chose in lexicographical order
 Task *pickNextTask() {
   if (!task_list) {
     return NULL;
   }
   Task *highest_priority_job = task_list->task;
-  struct node *n = task_list;
-  while(n){
-    if(n->task->priority >= highest_priority_job->priority){
-      highest_priority_job = n->task;
+  struct node *temp = task_list;
+  while(temp){
+    if(temp->task->priority >= highest_priority_job->priority){
+      highest_priority_job = temp->task;
     }
-    n = n->next;
+    temp = temp->next;
   }
   return highest_priority_job;
 }
 
 // invoke the scheduler
+// print total time used by CPU after finishing each task 
 void schedule() {
   while(task_list) {
     int time = 0;
-    Task *temp = pickNextTask();
-    run(temp, temp->burst);
-    time += temp->burst;
+    Task *task = pickNextTask();
+    run(task, task->burst);
+    time += task->burst;
     printf("\tTime is now: %d\n", time);
-    delete(&task_list, temp);
+    delete(&task_list, task);
   }
 }
