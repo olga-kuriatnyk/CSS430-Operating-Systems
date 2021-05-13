@@ -1,7 +1,11 @@
-/**
- * Various list operations
- */
- 
+// Olga Kuriatnyk
+// 5/11/2021
+// CSS 430
+// P3: Scheduling Algorithms
+// list.c
+// Various list operations
+// This class was modified
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -9,15 +13,16 @@
 #include "list.h"
 #include "task.h"
 
-
 // add a new task to the list of tasks
-void insert(struct node **head, Task *newTask) {
+// return new Node
+struct node* insert(struct node **head, Task *newTask) {
     // add the new task to the list 
     struct node *newNode = malloc(sizeof(struct node));
 
     newNode->task = newTask;
     newNode->next = *head;
     *head = newNode;
+    return newNode;
 }
 
 // delete the selected task from the list

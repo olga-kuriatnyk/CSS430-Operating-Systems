@@ -16,21 +16,20 @@
 #include "cpu.h"
 #include "list.h"
 
-struct node *task_list = NULL;
+struct node *task_list;
+
+bool comesBefore(char *a, char *b) { return strcmp(a, b) < 0; }
 
 // add a task to the list
 // allocate new memory
 // initialize all the tasks' date fields with values
 void add(char *name, int priority, int burst) {
-  Task *task = malloc(sizeof(Task));
-  task->name = malloc(sizeof(char) * (strlen(name) + 1));
-  strcpy(task->name, name);
-  task->priority = priority;
-  task->burst = burst;
-  insert(&task_list, task);
+  Task *temp = malloc(sizeof(Task));
+  temp->name = name;
+  temp->priority = priority;
+  temp->burst = burst;
+  insert(&task_list, temp);
 }
-
-bool comesBefore(char *a, char *b) { return strcmp(a, b) < 0; }
 
 // finds the task whose name comes first in dictionary for grading puproses
 Task *pickNextTask() {
@@ -40,7 +39,7 @@ Task *pickNextTask() {
   struct node *temp;
   temp = task_list;
   Task *best_sofar = temp->task;
-  while (temp != NULL) {
+  while (temp) {
     if (comesBefore(temp->task->name, best_sofar->name)) {
       best_sofar = temp->task;
     }
@@ -49,15 +48,26 @@ Task *pickNextTask() {
   return best_sofar;
 }
 
+// calculete CPU utilization
+float utilizationCPU(int totalTime, int dispatcherTime) {
+  float result = (totalTime / (float)dispatcherTime) * 100;
+  printf("CPU Utilization: %.2f%%\n", result);
+  return result;
+}
+
 // invoke the scheduler
 // print total time used by CPU after finishing each task 
 void schedule() {
   int time = 0;
+  int switch_counter = 0;
   while(task_list) {
     Task *task = pickNextTask();
     run(task, task->burst);
+    switch_counter++;
     time += task->burst;
     printf("\tTime is now: %d\n", time);
     delete (&task_list, task); // delete the node from list
   }
+  int dispatcherTime = time + switch_counter - 1;
+  utilizationCPU(time, dispatcherTime);
 }
