@@ -88,8 +88,32 @@ i32 fsRead(i32 fd, i32 numb, void* buf) {
   // Insert your code here
   // ++++++++++++++++++++++++
 
-  FATAL(ENYI);                                  // Not Yet Implemented!
-  return 0;
+  i8 *buffer = (i8 *)buf; // cast buf to i8 array
+  i8 bioBuf[BYTESPERBLOCK]; // allocate buffer
+  
+  int read = 0; // number of bytes read
+
+  i32 cursor = bfsTell(fd); // get current cursor position
+  i32 inum = bfsFdToInum(fd); // inum
+  i32 fbn = cursor / BYTESPERBLOCK;
+  
+  memset(bioBuf, 0, BYTESPERBLOCK);
+  bfsRead(inum, fbn++, bioBuf); // read to buffer
+
+  int startIndx = cursor % 512; // reading from
+  int endIndx = startIndx + numb; 
+
+  for (startIndx; startIndx < endIndx; startIndx++, read++) {
+    buffer[read] = bioBuf[startIndx];
+  }
+  
+  fsSeek(fd, read, SEEK_CUR); // increase cursor
+
+
+  return read;
+
+  //FATAL(ENYI);                                  // Not Yet Implemented!
+  //return 0;
 }
 
 
