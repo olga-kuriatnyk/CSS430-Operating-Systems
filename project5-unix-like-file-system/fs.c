@@ -5,6 +5,10 @@
 #include "bfs.h"
 #include "fs.h"
 
+#include <stdbool.h>
+#include <stdlib.h>
+#include <stdio.h>
+
 // ============================================================================
 // Close the file currently open on file descriptor 'fd'.
 // ============================================================================
@@ -84,36 +88,47 @@ i32 fsOpen(str fname) {
 // ============================================================================
 i32 fsRead(i32 fd, i32 numb, void* buf) {
 
-  // ++++++++++++++++++++++++
-  // Insert your code here
-  // ++++++++++++++++++++++++
+  i32 size = fsSize(fd);
+  if(numb <= 0) {
+    FATAL(ENEGNUMB);
+  }
+  if (numb > size) {
+    FATAL (EBIGNUMB);
+  }
 
   i8 *buffer = (i8 *)buf; // cast buf to i8 array
-  i8 bioBuf[BYTESPERBLOCK]; // allocate buffer
+  i8 bioBuf[BYTESPERBLOCK]; // allocate buffer  
+  i32 readBytes = 0, offset = 0;
+  i32 startIndx = 0, endIndx = 0;
+  i32 inum = bfsFdToInum(fd);
+
+  while(numb > 0) {
+
+    offset = readBytes;
+    i32 cursor = fsTell(fd); // get current cursor position
+    i32 fbn = cursor / BYTESPERBLOCK;
   
-  int read = 0; // number of bytes read
+    memset(bioBuf, 0, BYTESPERBLOCK);
+    bfsRead(inum, fbn++, bioBuf); // read to buffer
 
-  i32 cursor = bfsTell(fd); // get current cursor position
-  i32 inum = bfsFdToInum(fd); // inum
-  i32 fbn = cursor / BYTESPERBLOCK;
+    startIndx = cursor % BYTESPERBLOCK; // reading from
+    endIndx = startIndx + numb; 
+
+    // handle large, spanning read (1,000 bytes)
+    if (endIndx > BYTESPERBLOCK) { 
+      endIndx = BYTESPERBLOCK; 
+    }
+    
+    for (startIndx; startIndx < endIndx; startIndx++, readBytes++) {
+      buffer[readBytes] = bioBuf[startIndx];
+    }
+
+    offset = readBytes - offset;
+    fsSeek(fd, offset, SEEK_CUR); // increase cursor
+    numb -= offset;
+}
   
-  memset(bioBuf, 0, BYTESPERBLOCK);
-  bfsRead(inum, fbn++, bioBuf); // read to buffer
-
-  int startIndx = cursor % 512; // reading from
-  int endIndx = startIndx + numb; 
-
-  for (startIndx; startIndx < endIndx; startIndx++, read++) {
-    buffer[read] = bioBuf[startIndx];
-  }
-  
-  fsSeek(fd, read, SEEK_CUR); // increase cursor
-
-
-  return read;
-
-  //FATAL(ENYI);                                  // Not Yet Implemented!
-  //return 0;
+  return readBytes;
 }
 
 
@@ -181,7 +196,7 @@ i32 fsSize(i32 fd) {
 // destination file.  On success, return 0.  On failure, abort
 // ============================================================================
 i32 fsWrite(i32 fd, i32 numb, void* buf) {
-
+  
   // ++++++++++++++++++++++++
   // Insert your code here
   // ++++++++++++++++++++++++
