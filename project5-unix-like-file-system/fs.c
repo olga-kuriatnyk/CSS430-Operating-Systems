@@ -1,3 +1,4 @@
+
 // ============================================================================
 // fs.c - user FileSytem API
 // ============================================================================
@@ -98,13 +99,13 @@ i32 fsRead(i32 fd, i32 numb, void* buf) {
 
   i32 readBytes = 0, offset = 0;
   i32 startIndx = 0, endIndx = 0;
-  i32 curs = fsTell(fd);
+  i32 curs = bfsTell(fd);
   i32 begin = curs;
   i32 fbn = curs / BYTESPERBLOCK;
 
   while(numb > 0 && readBytes < size-begin) {
     
-    curs = fsTell(fd);  
+    curs = bfsTell(fd);  
     memset(bioBuf, 0, BYTESPERBLOCK);
     bfsRead(bfsFdToInum(fd), fbn, bioBuf);
     fbn++;
@@ -210,7 +211,7 @@ i32 fsWrite(i32 fd, i32 numb, void* buf) {
 
   i32 startIndx = 0, endIndx = 513;
   i32 writeBytes = 0;
-  i32 curs = fsTell(fd);
+  i32 curs = bfsTell(fd);
   i32 inum = bfsFdToInum(fd);
   i32 fbn = curs / BYTESPERBLOCK;
 
